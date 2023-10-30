@@ -12,7 +12,7 @@ using UnityEngine.EventSystems;
 public class ClickerGame : MonoBehaviour
 {
 
-    
+
     /* resources
     - food
     - wood
@@ -30,7 +30,7 @@ public class ClickerGame : MonoBehaviour
     - faith
     */
 
-    public Resource food; 
+    public Resource food;
     public Resource wood;
     public Resource stone;
     public Resource minerals;
@@ -59,44 +59,51 @@ public class ClickerGame : MonoBehaviour
 
     public string lastClicked; //needs implementation
 
-    private int resourcesShown=1;
-    public static Main mainInstance;
-    public Dictionary<string,float> resDict;
-    private string[] resArray =new string[8]{"food","wood","stone","minerals","bronze", "copper","iron","gold"};
-    
-    void onEnable(){
-        
+    private int resourcesShown = 1;
+
+    public Dictionary<string, float> resDict;
+    private string[] resArray = new string[8] { "food", "wood", "stone", "minerals", "bronze", "copper", "iron", "gold" };
+
+    void onEnable()
+    {
+
     }
 
     // Start is called before the first frame update
     void Start()
     {
-        mainInstance = new Main();
-        resDict = new Dictionary<string, float>();
-         for( int i =0; i<8;i++){
-             resDict.Add(resArray[i], 0f); 
-         }
 
-        string path = Application.persistentDataPath + "/player.data";
-        InitializeGameObjects();
-        if (!File.Exists(path)){
-            mainInstance.SaveData(resDict,"resDict");
-            Debug.Log("saved!");
-        }else{
-            resDict = mainInstance.GetData("resDict");    
+        resDict = new Dictionary<string, float>();
+        for (int i = 0; i < resArray.Length; i++)
+        {
+            resDict.Add(resArray[i], 0f);
         }
-  
+
+        string path = Application.persistentDataPath + "/saveData/" + "myData.txt";
+        InitializeGameObjects();
+        if (!File.Exists(path))
+        {
+            Main.instance.StoreMainDict(resDict, "resDict");
+            Main.instance.SaveData();
+            Debug.Log("saved!");
+        }
+        else
+        {
+            resDict = Main.instance.GetDataDict("resDict");
+        }
+
     }
 
 
     // Update is called once per frame
     void Update()
     {
-        
-    }
-    
 
-    private void InitializeGameObjects(){
+    }
+
+
+    private void InitializeGameObjects()
+    {
         UI = gameObject;
         Resources = UI.transform.Find("Resources").gameObject;
         Upgrades = UI.transform.Find("Upgrades").gameObject;
@@ -112,47 +119,56 @@ public class ClickerGame : MonoBehaviour
         Gold = Resources.transform.Find("Gold").gameObject;
 
         GatherFood = Upgrades.transform.Find("GatherFood").gameObject.GetComponent<Button>();
-        Task1 = TaskChoice.transform.Find("Task1").gameObject.GetComponent<Button>();
+        Task1 = TaskChoice.transform.Find("Food").gameObject.GetComponent<Button>();
         Task2 = TaskChoice.transform.Find("Task2").gameObject.GetComponent<Button>();
 
         GatherFood.onClick.AddListener(UpgButtonClicked);
         Task1.onClick.AddListener(TaskClicked);
-        
-        food  = new Resource("food", 0, Food);
-        wood = new Resource("wood",0,Wood);
-        stone = new Resource("stone", 0,Stone);
+
+        food = new Resource("food", 0, Food);
+        wood = new Resource("wood", 0, Wood);
+        stone = new Resource("stone", 0, Stone);
         minerals = new Resource("minerals", 0, Minerals);
-        bronze = new Ore("bronze", 0, Bronze,"bronze");
-        copper = new Ore("copper", 0, Copper,"copper");
-        iron = new Ore("iron", 0, Iron,"iron");
-        gold = new Ore("gold", 0, Gold,"gold");
-        resourcesShown=1; 
-        lastClicked= "Gather Food";
+        bronze = new Ore("bronze", 0, Bronze, "bronze");
+        copper = new Ore("copper", 0, Copper, "copper");
+        iron = new Ore("iron", 0, Iron, "iron");
+        gold = new Ore("gold", 0, Gold, "gold");
+        resourcesShown = 1;
+        lastClicked = "Gather Food";
         TaskChoice.SetActive(false);
     }
-    
 
-    
-    public void ButtonClicked(){
+
+
+    public void ButtonClicked()
+    {
 
         lastClicked = EventSystem.current.currentSelectedGameObject.transform.parent.name;
-        
-        if (lastClicked == "Upgrades"){
+
+        if (lastClicked == "Upgrades")
+        {
             UpgButtonClicked();
         }
-        else if (lastClicked == "TaskChoice"){
+        else if (lastClicked == "TaskChoice")
+        {
             TaskClicked();
         }
     }
-    
-    public void TaskClicked(){
+
+    public void TaskClicked()
+    {
         // send to Task
-        mainInstance.SaveData(resDict,"resDict");
-        mainInstance.LoadScene("AimScene");
+        Main.instance.StoreMainDict(resDict, "resDict");
+        Main.instance.SaveData();
+
+        Main.instance.currentResource = EventSystem.current.currentSelectedGameObject.transform.name.ToLower();
+        Debug.Log(Main.instance.currentResource);
+        Main.instance.LoadScene("AimScene");
     }
-    
-    public void UpgButtonClicked(){
-        mainInstance.DoNothing();
+
+    public void UpgButtonClicked()
+    {
+        Main.instance.DoNothing();
         Resources.SetActive(false);
         Upgrades.SetActive(false);
         TaskChoice.SetActive(true);
@@ -162,49 +178,52 @@ public class ClickerGame : MonoBehaviour
     }
 }
 
-public class Resource 
+public class Resource
 {
-    protected string name {get; set;}
-    protected int amount {get; set;}
-    public GameObject UIGameObject; 
+    protected string name { get; set; }
+    protected int amount { get; set; }
+    public GameObject UIGameObject;
 
     public Resource()
     {
-        name="";
-        amount=0;
+        name = "";
+        amount = 0;
     }
 
-    public Resource(string name, int amount, GameObject UIGameObject){
+    public Resource(string name, int amount, GameObject UIGameObject)
+    {
         this.name = name;
         this.amount = amount;
         this.UIGameObject = UIGameObject;
     }
 
-    public int GetResourceAmount(){
+    public int GetResourceAmount()
+    {
         return this.amount;
     }
 
-    public void SetResourceAmount(int amount){
+    public void SetResourceAmount(int amount)
+    {
         this.amount = amount;
     }
 
 }
 
-public class Ore : Resource 
+public class Ore : Resource
 {
-    protected string type {get; set;}
+    protected string type { get; set; }
 
-    public Ore() : base() {}
-    
-    public Ore(string name, int amount,GameObject UIGameObject, string type) 
+    public Ore() : base() { }
+
+    public Ore(string name, int amount, GameObject UIGameObject, string type)
     {
         this.name = name;
         this.amount = amount;
         this.UIGameObject = UIGameObject;
         this.type = type;
-    
+
     }
 
 
-    
+
 }

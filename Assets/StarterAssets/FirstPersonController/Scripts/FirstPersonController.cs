@@ -54,7 +54,7 @@ namespace StarterAssets
 
 		// cinemachine
 		private float _cinemachineTargetPitch;
-		AimGame AimTask	;
+		AimGame AimTask;
 		// player
 		private float _speed;
 		private float _rotationVelocity;
@@ -64,9 +64,9 @@ namespace StarterAssets
 		// timeout deltatime
 		private float _jumpTimeoutDelta;
 		private float _fallTimeoutDelta;
-    	private bool clicked;
+		private bool clicked;
 		private bool taskStarted;
-	
+
 #if ENABLE_INPUT_SYSTEM && STARTER_ASSETS_PACKAGES_CHECKED
 		private PlayerInput _playerInput;
 #endif
@@ -81,11 +81,11 @@ namespace StarterAssets
 		{
 			get
 			{
-				#if ENABLE_INPUT_SYSTEM && STARTER_ASSETS_PACKAGES_CHECKED
+#if ENABLE_INPUT_SYSTEM && STARTER_ASSETS_PACKAGES_CHECKED
 				return _playerInput.currentControlScheme == "KeyboardMouse";
-				#else
+#else
 				return false;
-				#endif
+#endif
 			}
 		}
 
@@ -104,7 +104,7 @@ namespace StarterAssets
 			mouseXStartPos = Mouse.current.position.x.value;
 			AimTask = GameObject.Find("Game").gameObject.transform.GetComponent<AimGame>();
 			clicked = false;
-        	taskStarted = false;
+			taskStarted = false;
 			_controller = GetComponent<CharacterController>();
 			_input = GetComponent<StarterAssetsInputs>();
 #if ENABLE_INPUT_SYSTEM && STARTER_ASSETS_PACKAGES_CHECKED
@@ -120,8 +120,9 @@ namespace StarterAssets
 
 		private void Update()
 		{
-			if (Mouse.current.rightButton.value == 1) {
-				mouseXStartPos= Mouse.current.position.x.value;
+			if (Mouse.current.rightButton.value == 1)
+			{
+				mouseXStartPos = Mouse.current.position.x.value;
 				this.distanceInPixelsTraveled = 0f;
 				this.rotationX = 0f;
 				this.stop = false;
@@ -139,21 +140,25 @@ namespace StarterAssets
 			GroundedCheck();
 			Move();
 		}
- 		// Update is called once per frame
+		// Update is called once per frame
 		void FixedUpdate()
 		{
 
-			if (!clicked){
-				if(_input.click){
-				    clicked =true;
-				    OnMouseClick();  
+			if (!clicked)
+			{
+				if (_input.click)
+				{
+					clicked = true;
+					OnMouseClick();
 				}
 			}
 
-			if (clicked){
-			
-				if(!_input.click){
-				    clicked = false;
+			if (clicked)
+			{
+
+				if (!_input.click)
+				{
+					clicked = false;
 				}
 			}
 		}
@@ -176,7 +181,7 @@ namespace StarterAssets
 			{
 				//Don't multiply mouse input by Time.deltaTime
 				float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
-				
+
 				_cinemachineTargetPitch += _input.look.y * RotationSpeed * deltaTimeMultiplier;
 				_rotationVelocity = _input.look.x * RotationSpeed * deltaTimeMultiplier;
 
@@ -242,27 +247,31 @@ namespace StarterAssets
 			// move the player
 			_controller.Move(inputDirection.normalized * (_speed * Time.deltaTime) + new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
 		}
-		void OnMouseClick(){
-			if(!taskStarted){
+		void OnMouseClick()
+		{
+			if (!taskStarted)
+			{
 				AimTask.StartTask();
-				taskStarted=true;
-			}else{
+				taskStarted = true;
+			}
+			else
+			{
 				//Debug.Log("clicked");
-				int layerMask = 1<<7;
+				int layerMask = 1 << 7;
 				//layerMask =~layerMask;
-				GameObject AimOrigin =CinemachineCameraTarget;
+				GameObject AimOrigin = CinemachineCameraTarget;
 				RaycastHit hit;
 
-				if (Physics.Raycast(AimOrigin.transform.position,AimOrigin.transform.TransformDirection(Vector3.forward),out hit, Mathf.Infinity, layerMask))
+				if (Physics.Raycast(AimOrigin.transform.position, AimOrigin.transform.TransformDirection(Vector3.forward), out hit, Mathf.Infinity, layerMask))
 				{
-						
+
 					Debug.DrawRay(AimOrigin.transform.position, AimOrigin.transform.TransformDirection(Vector3.forward) * hit.distance, Color.yellow);
 					AimTask.OnHit(hit);
 				}
 				else
 				{
 					Debug.DrawRay(AimOrigin.transform.position, AimOrigin.transform.TransformDirection(Vector3.forward) * 1000, Color.white);
-					Debug.Log("Did not Hit");
+					//Debug.Log("Did not Hit");
 					AimTask.OnMiss(hit);
 				}
 			}
@@ -368,61 +377,69 @@ namespace StarterAssets
 		private float previousRotationX;
 		private float mouseXEndPos;
 		private float mouseXStartPos;
-		
-		private void MouseTestUpdate() {
+
+		private void MouseTestUpdate()
+		{
 			// Mouse position on the screen (used for crosshair thing).
 			mousePos = Mouse.current.position.value;
-			
+
 			// Get the mouse delta -- 0.05 = 1 pixel worth of movement, so multiply by 20.
 			mouseXPos = Mouse.current.position.x.value;
-			if (mouseXPos < 0f) {
+			if (mouseXPos < 0f)
+			{
 				mouseXPos = 0f;
 			}
-			this.distanceInPixelsTraveled = Mathf.Abs(mouseXStartPos)+mouseXEndPos;
+			this.distanceInPixelsTraveled = Mathf.Abs(mouseXStartPos) + mouseXEndPos;
 
 			// Figure out how many physical inches the mouse cursor has traveled.
-			this.distanceIncmTraveled = this.distanceInPixelsTraveled*2.54f / Screen.dpi;
+			this.distanceIncmTraveled = this.distanceInPixelsTraveled * 2.54f / Screen.dpi;
 			// Figure out how many physical inches the mouse has traveled.
 			//this.physicalDistanceInInchesTraveled = this.distanceInInchesTraveled / (800 / Screen.dpi);
-			this.physicalDistanceIncmTraveled = this.distanceInPixelsTraveled*2.54f/ mouseDPI;
+			this.physicalDistanceIncmTraveled = this.distanceInPixelsTraveled * 2.54f / mouseDPI;
 
 			// Reset...
-			if (Mouse.current.rightButton.value == 1) {
+			if (Mouse.current.rightButton.value == 1)
+			{
 				this.distanceInPixelsTraveled = 0f;
 				this.rotationX = 0f;
 				this.stop = false;
 			}
 		}
-	
-		private void MouseLookUpdate() {
+
+		private void MouseLookUpdate()
+		{
 			//Gets rotational input from the mouse
 			//rotationY += Input.GetAxisRaw("Mouse Y") * sensitivityY;
 			float mousemove = _input.look.x * sensitivityX;
 			//rotationX += Input.GetAxisRaw("Mouse X") * sensitivityX;
 			rotationX += mousemove < 0 ? 0 : mousemove;
-			
+
 
 			//Clamp the rotation average to be within a specific value range
 			//rotationY = ClampAngle(rotationY, minimumY, maximumY);
-			if (rotationX >= 360f) {
+			if (rotationX >= 360f)
+			{
 				rotationX = ClampAngle(rotationX, minimumX, maximumX);
 				mouseXEndPos = Mouse.current.position.x.value;
-				if(mouseXStartPos>0){
-					this.distanceInPixelsTraveled = -mouseXStartPos+mouseXEndPos;
-				}else{
-					this.distanceInPixelsTraveled = Mathf.Abs(mouseXStartPos)+mouseXEndPos;
+				if (mouseXStartPos > 0)
+				{
+					this.distanceInPixelsTraveled = -mouseXStartPos + mouseXEndPos;
 				}
-				this.distanceIncmTraveled = (this.distanceInPixelsTraveled*2.54f) / Screen.dpi;
-					// Figure out how many physical inches the mouse has traveled.
-					//this.physicalDistanceInInchesTraveled = this.distanceInInchesTraveled / (800 / Screen.dpi);
-				this.physicalDistanceIncmTraveled = (this.distanceInPixelsTraveled*2.54f)/ mouseDPI;
+				else
+				{
+					this.distanceInPixelsTraveled = Mathf.Abs(mouseXStartPos) + mouseXEndPos;
+				}
+				this.distanceIncmTraveled = (this.distanceInPixelsTraveled * 2.54f) / Screen.dpi;
+				// Figure out how many physical inches the mouse has traveled.
+				//this.physicalDistanceInInchesTraveled = this.distanceInInchesTraveled / (800 / Screen.dpi);
+				this.physicalDistanceIncmTraveled = (this.distanceInPixelsTraveled * 2.54f) / mouseDPI;
 				this.stop = true;
 			}
-			
+
 			//Get the rotation you will be at next as a Quaternion
 			//Quaternion yQuaternion = Quaternion.AngleAxis(rotationY, Vector3.left);
 			Quaternion xQuaternion = Quaternion.AngleAxis(rotationX, Vector3.up);
-			
+
 			//Rotate
 			Camera.main.transform.localRotation = originalRotation * xQuaternion;
 			// * yQuaternion;
@@ -434,27 +451,31 @@ namespace StarterAssets
 			//Debug.Log("rotation: "+ this.rotationX);
 			//Debug.Log("Screen dpi: "+ Screen.dpi);
 		}
-		public float GetLength(string which) {
-			switch(which) {
+		public float GetLength(string which)
+		{
+			switch (which)
+			{
 				case "pixels": return this.distanceInPixelsTraveled;
-				
+
 				case "screeninches": return this.distanceIncmTraveled;
 				case "padinches": return this.physicalDistanceIncmTraveled;
 				default: return 0f;
 			}
 		}
-		public float GetAngleX() {
-				return rotationX;
+		public float GetAngleX()
+		{
+			return rotationX;
 		}
-		public void SetSensitivity(string sensitivity) {
-		// Source games conversion...
-		//this.sensitivityX = float.Parse(sensitivity) / 2.2727f;
-		//this.sensitivityY = float.Parse(sensitivity) / 2.2727f;
-		
-		this.sensitivityX = float.Parse(sensitivity);
-		this.sensitivityY = float.Parse(sensitivity);
+		public void SetSensitivity(string sensitivity)
+		{
+			// Source games conversion...
+			//this.sensitivityX = float.Parse(sensitivity) / 2.2727f;
+			//this.sensitivityY = float.Parse(sensitivity) / 2.2727f;
+
+			this.sensitivityX = float.Parse(sensitivity);
+			this.sensitivityY = float.Parse(sensitivity);
 		}
-	
+
 	}
-	
+
 }
