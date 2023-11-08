@@ -12,10 +12,10 @@ public static class SaveSystem
 
     public static void SaveData(GameData data)
     {
-        Debug.Log("dataIsBeingSaved");
+        //Debug.Log("dataIsBeingSaved");
         //BinaryFormatter formatter = new BinaryFormatter();
         string path = Application.persistentDataPath + directory;
-        Debug.Log(Application.persistentDataPath);
+        //Debug.Log(Application.persistentDataPath);
         if (!Directory.Exists(path))
             Directory.CreateDirectory(path);
 

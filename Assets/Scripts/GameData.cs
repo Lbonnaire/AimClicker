@@ -16,7 +16,7 @@ public class GameData
     public float copper;
     public float iron;
     public float gold;
-
+    public float resDiscovered=1;
     public float highscore;
 
     //public Dictionary<string,float> resDict;
@@ -30,7 +30,6 @@ public class GameData
             case "food":
                 this.food = value;
                 break;
-
             case "wood":
                 this.wood = value;
                 break;
@@ -57,6 +56,12 @@ public class GameData
             case "highscore":
                 this.highscore = value;
                 break;
+                
+            //main
+            case "resDiscovered":
+                this.resDiscovered = value;
+                break;
+
         }
     }
     public float GetValue(string resName)

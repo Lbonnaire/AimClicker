@@ -120,7 +120,7 @@ public class AimGame : MonoBehaviour
     private void InitializeGameObjects()
     {
 
-        Main.instance = new Main();
+        //Main.instance = new Main();
         _input = GameObject.Find("Player").GetComponent<StarterAssetsInputs>();
         UI = GameObject.Find("UI");
         Panel = UI.transform.Find("Canvas").gameObject.transform.Find("Panel").gameObject;
@@ -293,8 +293,7 @@ public class AimGame : MonoBehaviour
         Main.instance.UpdateResources(endScore);
         Main.instance.StoreMainDict(taskStatsDict, "taskStatsDict");
         Main.instance.SaveData();
-
-
+        Main.instance.mainInitialized = true;
         Main.instance.LoadScene("Clicker");
     }
 

@@ -5,6 +5,14 @@ TagManager:
   serializedVersion: 2
   tags:
   - CinemachineTarget
+  - Food
+  - Wood
+  - Stone
+  - Minerals
+  - Bronze
+  - Copper
+  - Iron
+  - Gold
   layers:
   - Default
   - TransparentFX

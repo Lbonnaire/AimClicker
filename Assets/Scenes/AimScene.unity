@@ -637,6 +637,7 @@ MonoBehaviour:
   timerIsRunning: 0
   countdownTimer: 3
   countdownIsRunning: 0
+  endScore: 0
 --- !u!1 &247120389
 GameObject:
   m_ObjectHideFlags: 0
@@ -4533,7 +4534,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2057365803}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 50404049db3ce82408629961b2236b19, type: 3}
   m_Name: 

@@ -2,7 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
-using UnityEditor.PackageManager.Requests;
+//using UnityEditor.PackageManager;
+//using UnityEditor.PackageManager.Requests;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -11,18 +12,26 @@ public class Main : MonoBehaviour
     public static Main instance;
     public Dictionary<string, float> resDict;
     public Dictionary<string, float> taskStatsDict;
+    public Dictionary<string, float> mainDict;
     private string[] resArray = new string[8] { "food", "wood", "stone", "minerals", "bronze", "copper", "iron", "gold" };
 
     private string[] taskStatsArray = new string[1] { "highscore" };
 
+    private string[] mainArray = new string[1]{"resDiscorvered"};
+
+    public float resDiscovered=1;
+
     public string currentResource;
+
     GameData data;
+    public bool mainInitialized= false;
 
     //// LOG
     // sens  
     // cm/360
     // fov
-    // score accuracy etc.
+    // logic behind progression of resource management.
+
 
     private void Awake()
     {
@@ -43,11 +52,9 @@ public class Main : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        currentResource = "food";
+        this.currentResource = "food";
         InitializeDicts();
-
         LoadData();
-
         // checks if it's the first time the program is launched and saves initial values if so
         try
         {
@@ -57,8 +64,11 @@ public class Main : MonoBehaviour
         {
             StoreMainDict(this.resDict, "resDict");
             StoreMainDict(this.taskStatsDict, "taskStatsDict");
+            StoreMainDict(this.mainDict,"mainDict");
             SaveData();
         }
+        SetResDisc();
+        mainInitialized = true;
     }
 
     // Update is called once per frame
@@ -89,6 +99,15 @@ public class Main : MonoBehaviour
         }
     }
 
+    private void SetResDisc(){
+       
+        
+        for(int i=0; i<resArray.Length;i++){
+            if (this.resDict[resArray[i]]>0){
+                resDiscovered++; // increase this also when a new value is discovered
+            }
+        }
+    }
     // print out a dictionary value by value (Debugging)
     public void PrintDict(Dictionary<string, float> dictToPrint)
     {
@@ -111,20 +130,11 @@ public class Main : MonoBehaviour
         Debug.Log("I did nothing");
     }
 
-    // 
-    /*public Dictionary<string, float> GetData(string dictName)
-    {
-
-        LoadData();
-        return GetDataDict(dictName);
-
-    }*/
-
     // get dictionary from data values
     public Dictionary<string, float> GetDataDict(string dictName)
     {
         Dictionary<string, float> dictToReturn = new Dictionary<string, float>();
-        LoadData();
+        
         switch (dictName)
         {
             case "resDict":
@@ -132,6 +142,7 @@ public class Main : MonoBehaviour
                 {
                     dictToReturn.Add(resArray[i], this.data.GetValue(resArray[i]));
                 }
+                //PrintDict(dictToReturn);
                 break;
             case "taskStatsDict":
                 for (int i = 0; i < taskStatsArray.Length; i++)
@@ -148,11 +159,17 @@ public class Main : MonoBehaviour
     {
         switch (dictName)
         {
+            case "mainDict":
+                for (int i = 0; i < mainArray.Length; i++)
+                {
+                    this.data.SetValue(mainArray[i], newDict[mainArray[i]]);
+                }
+                break;
             case "resDict":
                 //this.resDict = newDict;
                 try
                 {
-                    Debug.Log(resDict["wood"]);
+                    //Debug.Log(resDict["wood"]);
                 }
                 catch
                 {
@@ -162,6 +179,7 @@ public class Main : MonoBehaviour
 
                 for (int i = 0; i < resArray.Length; i++)
                 {
+                    Debug.Log(i);
                     this.data.SetValue(resArray[i], newDict[resArray[i]]);
                 }
                 break;
@@ -172,6 +190,7 @@ public class Main : MonoBehaviour
                     this.data.SetValue(taskStatsArray[i], newDict[taskStatsArray[i]]);
                 }
                 break;
+                
         }
 
     }
@@ -196,11 +215,12 @@ public class Main : MonoBehaviour
         {
             this.taskStatsDict.Add(this.taskStatsArray[i], 0f);
         }
+        Main.instance.resDiscovered=1;
         //PrintDict(this.taskStatsDict);
     }
 
     // Get value from dictionaries
-    private float GetValue(string dictName, string valName)
+    public float GetValue(string dictName, string valName)
     {
         float valueToReturn = 0;
         if (dictName == "resDict")
@@ -219,8 +239,9 @@ public class Main : MonoBehaviour
     public void UpdateResources(float resGained)
     {
         this.data.SetValue(currentResource, this.data.GetValue(currentResource) + resGained);
+        //Debug.Log(this.data.food);
         this.resDict = GetDataDict("resDict");
-        Debug.Log(this.resDict["food"]);
+        //Debug.Log(this.resDict["food"]);
     }
 
     // Load next scene
