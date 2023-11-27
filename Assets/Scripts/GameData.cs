@@ -5,9 +5,6 @@ using UnityEngine;
 [System.Serializable]
 public class GameData
 {
-
-    // resArray =new string[8]{"food","wood","stone","minerals","bronze", "copper","iron","gold"};
-    // taskStatsArray = new string[1]{"highscore"};
     public float food;
     public float wood;
     public float stone;
@@ -19,8 +16,6 @@ public class GameData
     public float resDiscovered=1;
     public float highscore;
 
-    //public Dictionary<string,float> resDict;
-    //public Dictionary<string,float> taskStatsDict;
 
     public void SetValue(string valueName, float value)
     {

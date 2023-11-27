@@ -1,25 +1,30 @@
-using System;
-using System.Collections;
+// namespaces used
 using System.Collections.Generic;
-using Unity.VisualScripting;
-//using UnityEditor.PackageManager;
-//using UnityEditor.PackageManager.Requests;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// Main class singleton instance used to handle data storage and saving between scenes
+/// </summary>
 public class Main : MonoBehaviour
 {
+    //~~~~~~~~ Variable initialization ~~~~~~~~~
+    // instance
     public static Main instance;
+
+    // dicationaries
     public Dictionary<string, float> resDict;
     public Dictionary<string, float> taskStatsDict;
     public Dictionary<string, float> mainDict;
+
+    // arrays
     private string[] resArray = new string[8] { "food", "wood", "stone", "minerals", "bronze", "copper", "iron", "gold" };
-
     private string[] taskStatsArray = new string[1] { "highscore" };
-
     private string[] mainArray = new string[1]{"resDiscorvered"};
 
+    // initialize the amount of resources discovered
     public float resDiscovered=1;
+
 
     public string currentResource;
 
@@ -32,10 +37,9 @@ public class Main : MonoBehaviour
     // fov
     // logic behind progression of resource management.
 
-
+    // Make sure that this is the only instance of main that is currently active
     private void Awake()
     {
-
         if (instance == null)
         {
             instance = this;
@@ -52,29 +56,25 @@ public class Main : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        this.currentResource = "food";
-        InitializeDicts();
-        LoadData();
+        this.currentResource = "food"; // set an initial value
+        InitializeDicts(); // give base values to the dictionaries
+        LoadData(); // load data from the saved file
+
         // checks if it's the first time the program is launched and saves initial values if so
         try
         {
             Debug.Log(this.data.food);
         }
-        catch
+        catch // if no data can be pulled, save the starting values to create an initial file 
         {
             StoreMainDict(this.resDict, "resDict");
             StoreMainDict(this.taskStatsDict, "taskStatsDict");
             StoreMainDict(this.mainDict,"mainDict");
             SaveData();
         }
-        SetResDisc();
+        
+        SetResDisc(); // sets the amount of resources that have been discovered
         mainInitialized = true;
-    }
-
-    // Update is called once per frame
-    void FixedUpdate()
-    {
-
     }
 
     // Save data in local file
@@ -86,32 +86,35 @@ public class Main : MonoBehaviour
     // Load data from saved file
     public void LoadData()
     {
-        this.data = SaveSystem.LoadData();
+        this.data = SaveSystem.LoadData(); // load data from the save system
+
         this.resDict = new Dictionary<string, float>();
+         // add the resources data to instance dictionary
         for (int i = 0; i < resArray.Length; i++)
         {
             this.resDict.Add(resArray[i], this.data.GetValue(resArray[i]));
         }
 
+        // add the task data to instance dictionary
         for (int i = 0; i < taskStatsArray.Length; i++)
         {
-            this.resDict.Add(taskStatsArray[i], this.data.GetValue(taskStatsArray[i]));
+            this.taskStatsDict.Add(taskStatsArray[i], this.data.GetValue(taskStatsArray[i]));
         }
     }
 
+    // for each resource with a non-zero value, increase the amount of resources discovered
     private void SetResDisc(){
-       
-        
         for(int i=0; i<resArray.Length;i++){
             if (this.resDict[resArray[i]]>0){
                 resDiscovered++; // increase this also when a new value is discovered
             }
         }
     }
+
     // print out a dictionary value by value (Debugging)
     public void PrintDict(Dictionary<string, float> dictToPrint)
     {
-        try
+        try // try to print out the dictionary and its values
         {
             foreach (KeyValuePair<string, float> kvp in dictToPrint)
             {
@@ -119,32 +122,27 @@ public class Main : MonoBehaviour
                 Debug.Log(kvp.Key.ToString() + ": " + kvp.Value.ToString());
             }
         }
-        catch
+        catch // if it doesn't work print out an error
         {
-            Debug.Log("noDict");
+            Debug.Log("Dictionary could not be printed");
         }
 
     }
-    public void DoNothing()
-    {
-        Debug.Log("I did nothing");
-    }
 
-    // get dictionary from data values
+    // get dictionary from the stored instance's GameData values
     public Dictionary<string, float> GetDataDict(string dictName)
     {
         Dictionary<string, float> dictToReturn = new Dictionary<string, float>();
         
-        switch (dictName)
+        switch (dictName) // choose which dictionary was requested
         {
-            case "resDict":
+            case "resDict": // if the resource dictionary was requested 
                 for (int i = 0; i < resArray.Length; i++)
                 {
                     dictToReturn.Add(resArray[i], this.data.GetValue(resArray[i]));
                 }
-                //PrintDict(dictToReturn);
                 break;
-            case "taskStatsDict":
+            case "taskStatsDict": // if the task dictionary was requested 
                 for (int i = 0; i < taskStatsArray.Length; i++)
                 {
                     dictToReturn.Add(taskStatsArray[i], this.data.GetValue(taskStatsArray[i]));
@@ -157,34 +155,26 @@ public class Main : MonoBehaviour
     // store dictionary values into data
     public void StoreMainDict(Dictionary<string, float> newDict, string dictName)
     {
-        switch (dictName)
+        switch (dictName) // choose which dictionary was requested
         {
-            case "mainDict":
+            case "mainDict": // if the main dictionary was requested 
+                // set the main gamedata values to the ones provided in the method
                 for (int i = 0; i < mainArray.Length; i++)
                 {
                     this.data.SetValue(mainArray[i], newDict[mainArray[i]]);
                 }
                 break;
-            case "resDict":
-                //this.resDict = newDict;
-                try
-                {
-                    //Debug.Log(resDict["wood"]);
-                }
-                catch
-                {
-                    InitializeDicts();
-                }
-
-
+            case "resDict": // if the resource dictionary was requested 
+                // set the resource gamedata values to the ones provided in the method
                 for (int i = 0; i < resArray.Length; i++)
                 {
-                    Debug.Log(i);
+
                     this.data.SetValue(resArray[i], newDict[resArray[i]]);
                 }
                 break;
 
-            case "taskStatsDict":
+            case "taskStatsDict": // if the task dictionary was requested 
+                // set the task gamedata values to the ones provided in the method
                 for (int i = 0; i < taskStatsArray.Length; i++)
                 {
                     this.data.SetValue(taskStatsArray[i], newDict[taskStatsArray[i]]);
@@ -198,30 +188,28 @@ public class Main : MonoBehaviour
     // initialize dictionaries
     private void InitializeDicts()
     {
+        // create an object of gamedata
         this.data = new GameData();
 
+        // give initial values to the resource and task dictionaries
         this.resDict = new Dictionary<string, float>();
-        //Debug.Log("check array init: "+ this.resArray[0]);
-
         for (int i = 0; i < this.resArray.Length; i++)
         {
             this.resDict.Add(this.resArray[i], 0f);
         }
-        // Debug.Log("check dict init: "+ this.resDict[this.resArray[0]]);
-
-
         this.taskStatsDict = new Dictionary<string, float>();
         for (int i = 0; i < this.taskStatsArray.Length; i++)
         {
             this.taskStatsDict.Add(this.taskStatsArray[i], 0f);
         }
+
+        // set initial resources discovered to 1
         Main.instance.resDiscovered=1;
-        //PrintDict(this.taskStatsDict);
     }
 
-    // Get value from dictionaries
+    // Get value from dictionaries stored locally on instance
     public float GetValue(string dictName, string valName)
-    {
+    {   
         float valueToReturn = 0;
         if (dictName == "resDict")
         {
@@ -239,9 +227,8 @@ public class Main : MonoBehaviour
     public void UpdateResources(float resGained)
     {
         this.data.SetValue(currentResource, this.data.GetValue(currentResource) + resGained);
-        //Debug.Log(this.data.food);
         this.resDict = GetDataDict("resDict");
-        //Debug.Log(this.resDict["food"]);
+       
     }
 
     // Load next scene

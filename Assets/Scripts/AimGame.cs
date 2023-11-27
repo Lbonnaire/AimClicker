@@ -1,3 +1,4 @@
+// namespaces used
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,28 +6,46 @@ using UnityEngine.UI;
 using System.IO;
 using TMPro;
 using UnityEngine.SocialPlatforms.Impl;
+using Unity.VisualScripting;
+
+/// <summary>
+/// Main class for the shooting tasks, currently only contains 1 type of task
+/// uses the singleton of the Main class to store values from the aim task.
+/// </summary>
 
 public class AimGame : MonoBehaviour
 {
+    //~~~~~~~~ Variable initialization ~~~~~~~~~
 
+    //Unity game object initialization
     public GameObject Orb,
                         UI,
                         Panel,
                         Player,
                         TaskCompleted;
 
+    // movement controls
     private StarterAssetsInputs _input;
 
+    // score calculation
+    int tarHit = 0;
+    int tarMiss = 0;
+    public float accuracy = 100;
+    public float endScore;
+
+    // value management
+    public Dictionary<string, float> taskStatsDict;
+    private string[] taskStatsArray;
+
+    //task elements
+    ArrayList freeSpaces;
+    private Vector2 freeSpot;
     float interval;
     Vector2 gridMid;
     float defZ;
-
     Vector2[,] orbGrid;
 
-
-    int tarHit = 0;
-    int tarMiss = 0;
-
+    // UI Text elements
     public TMP_Text AccText,
                     Hits,
                     Misses,
@@ -36,60 +55,64 @@ public class AimGame : MonoBehaviour
                     FinalScore,
                     HighScore,
                     timeText,
-                    Countdown;
+                    CountdownGO;
 
-    public float accuracy = 100;
-
-    ArrayList freeSpaces;
+    // UI elements
     public Button EndStatsClose;
 
-    public Dictionary<string, float> taskStatsDict;
-    private string[] taskStatsArray;
+    // timers init
     public float timeRemaining = 10;
     public bool timerIsRunning = false;
 
     public float countdownTimer = 3;
     public bool countdownIsRunning = false;
-    public float endScore;
 
-    private Vector2 freeSpot;
 
     // Start is called before the first frame update
     void Start()
     {
+        // method call to attach UI elements to script
         InitializeGameObjects();
-
-        // grid 5x5, 
-        // size of orbs
-        // space between orbs
         timerIsRunning = false;
-        interval = Orb.transform.localScale.x * 1.2f;
-        //Debug.Log(Orb.transform.localScale.x);
-        float ymid = 3f;
 
-        gridMid = new Vector2(0f, ymid);
-        defZ = 4f;
-        freeSpaces = new ArrayList();
+
+        // Task base value and variable initialisation
+        interval = Orb.transform.localScale.x * 1.2f; // space between orbs
+        freeSpaces = new ArrayList(); // list of free slots for orbs to spawn    
         orbGrid = new Vector2[5, 5];
+        float ymid = 3f; // middle of the grid
+        gridMid = new Vector2(0f, ymid); // middle of the grid in 2D
+        defZ = 4f;
 
+        // add all empty orb slots into the list
         for (var i = 0; i < 5; i++)
         {
             for (var j = 0; j < 5; j++)
             {
                 orbGrid[i, j] = new Vector2(i, j);
                 freeSpaces.Add(orbGrid[i, j]);
-
             }
         }
 
+        // Add three new orbs to the task
         for (var i = 0; i < 3; i++)
         {
             InstantiateNewOrb();
         }
     }
+
+    // Update method is called every frame
+    // used to handle timers for the pre task countdown and the task duration 
     void Update()
     {
-        if (timerIsRunning)
+        // if the task hasn't started start the countdown
+        if (countdownIsRunning)
+        {
+            Countdown();
+            Cursor.visible = false;
+        }
+        // if the countdown has ended and the task has started check if the timer is finished
+        else if (timerIsRunning)
         {
             if (timeRemaining > 0)
             {
@@ -98,10 +121,9 @@ public class AimGame : MonoBehaviour
             }
             else
             {
-                //Debug.Log("Time has run out!");
+                // when the task is finished show the end screen
                 timeRemaining = 0;
                 DisplayTime(timeRemaining);
-
                 timerIsRunning = false;
                 TaskCompleted.SetActive(true);
                 Cursor.lockState = false ? CursorLockMode.Locked : CursorLockMode.None;
@@ -109,18 +131,12 @@ public class AimGame : MonoBehaviour
                 UpdateStats();
             }
         }
-        else if (countdownIsRunning)
-        {
-            StartCountdown();
-
-            Cursor.visible = false;
-        }
     }
 
+
+    // Initializee the gameobjects from the Unity hierarchy and link them to the script
     private void InitializeGameObjects()
     {
-
-        //Main.instance = new Main();
         _input = GameObject.Find("Player").GetComponent<StarterAssetsInputs>();
         UI = GameObject.Find("UI");
         Panel = UI.transform.Find("Canvas").gameObject.transform.Find("Panel").gameObject;
@@ -129,7 +145,7 @@ public class AimGame : MonoBehaviour
         EndStatsClose = TaskCompleted.transform.Find("EndStats").GetComponentInChildren<Button>();
         EndStatsClose.onClick.AddListener(EndButtonClicked);
 
-        Countdown = UI.transform.Find("Canvas").gameObject.transform.Find("Countdown").gameObject.GetComponent<TMP_Text>();
+        CountdownGO = UI.transform.Find("Canvas").gameObject.transform.Find("Countdown").gameObject.GetComponent<TMP_Text>();
         AccText = GameObject.Find("Accuracy").GetComponent<TMP_Text>();
         Hits = GameObject.Find("Hits").GetComponent<TMP_Text>();
         Misses = GameObject.Find("Misses").GetComponent<TMP_Text>();
@@ -143,10 +159,10 @@ public class AimGame : MonoBehaviour
 
 
         AccText.text = "Accuracy: 100%";
-        Countdown.gameObject.SetActive(false);
+        CountdownGO.gameObject.SetActive(false);
         TaskCompleted.SetActive(false);
 
-
+        // gather stats from the value handler in Main. In this case only retrieves the previous highscore
         taskStatsArray = new string[1] { "highscore" };
         taskStatsDict = new Dictionary<string, float>();
         for (int i = 0; i < taskStatsArray.Length; i++)
@@ -163,42 +179,46 @@ public class AimGame : MonoBehaviour
 
     }
 
+    // Change visible UI elements and start the task countdown
     public void StartTask()
     {
         Panel.SetActive(false);
-        Countdown.gameObject.SetActive(true);
+        CountdownGO.gameObject.SetActive(true);
         countdownIsRunning = true;
-        StartCountdown();
+        Countdown();
     }
 
-    public void StartCountdown()
+    // Handle the countdown prior to the task
+    public void Countdown()
     {
         if (countdownIsRunning)
         {
-
+            // countdown timer is running
             if (countdownTimer > 0)
             {
                 countdownTimer -= Time.deltaTime;
                 DisplayCountdown(countdownTimer);
             }
+            // end countdown and start task timer
             else
             {
-
                 countdownTimer = 0;
                 countdownIsRunning = false;
-                Countdown.gameObject.SetActive(false);
+                CountdownGO.gameObject.SetActive(false);
                 timerIsRunning = true;
                 Cursor.lockState = true ? CursorLockMode.Locked : CursorLockMode.None;
             }
         }
     }
 
+    // Look for a free spot to place an orb
     private Vector2 FindFreePos()
     {
-        int randomSpace = Random.Range(0, freeSpaces.Count);
-        freeSpot = (Vector2)freeSpaces[randomSpace];
-        freeSpaces.RemoveAt(randomSpace);
-        //Debug.Log(freeSpot);
+        int randomSpace = Random.Range(0, freeSpaces.Count); // choose a random slot in the available slot
+        freeSpot = (Vector2)freeSpaces[randomSpace];    // assign the slot to the variable
+        freeSpaces.RemoveAt(randomSpace);   // remove the taken spot from the list of free slots.
+
+        // print out all spaces in console
         string debuglist = "Spaces = ";
         foreach (Vector2 space in freeSpaces)
         {
@@ -210,22 +230,20 @@ public class AimGame : MonoBehaviour
 
     }
 
+    // Create a new instance of an orb
     private void InstantiateNewOrb()
     {
-
+        // generate position of the new orb to be instantiated
         Vector2 freeSpot = FindFreePos();
         int xpos = (int)freeSpot.x - 2; // -2 to shift from {0...4} to {-2...2}
         int ypos = (int)freeSpot.y - 2;
-        //orbGrid[(int)freeSpot.x, (int)freeSpot.y]= new Vector2((int)freeSpot.x, (int)freeSpot.y);
 
+        // instantiate the orb
         Instantiate(Orb, new Vector3(gridMid.x + xpos * interval, gridMid.y - ypos * interval, defZ), Quaternion.identity);
-        //Debug.Log(xpos);
-        //Debug.Log(ypos);
-        //Debug.Log("X:"+(gridMid.x+xpos*interval)+", Y:"+ (gridMid.y+ypos*interval));
     }
 
 
-
+    // if the player misses the target add a miss
     public void OnMiss(RaycastHit hit)
     {
         if (timerIsRunning)
@@ -235,16 +253,13 @@ public class AimGame : MonoBehaviour
         }
     }
 
-
+    // if the player hits the target add a hit and replace the missing orb
     public void OnHit(RaycastHit hit)
     {
         if (timerIsRunning)
         {
-
-
             GameObject HitOrb = hit.transform.gameObject;
             Vector2 OrbPos = new Vector2(((HitOrb.transform.position.x - gridMid.x) / interval) + 2, ((HitOrb.transform.position.y - gridMid.y) / interval) + 2);
-            //Debug.Log("X:"+OrbPos.x.ToString()+", Y:"+OrbPos.y.ToString());
             freeSpaces.Add(OrbPos);
             Destroy(HitOrb);
             tarHit += 1;
@@ -253,6 +268,7 @@ public class AimGame : MonoBehaviour
         }
     }
 
+    // assign new values to the stats and UI elements that display the stats
     public void UpdateStats()
     {
         if (timerIsRunning)
@@ -264,30 +280,23 @@ public class AimGame : MonoBehaviour
         }
         else
         {
-            //Debug.Log("ShowingEndStats");
             EndAccText.text = AccText.text;
             EndHits.text = Hits.text;
             EndMisses.text = Misses.text;
             endScore = (tarHit - tarMiss);
             FinalScore.text = "Final score: " + endScore.ToString();
-            //Main.instance.PrintDict(taskStatsDict);
-            taskStatsDict = Main.instance.GetDataDict("taskStatsDict");
-            //Debug.Log(endScore.ToString());
-            //Debug.Log(this.taskStatsDict["highscore"].ToString());
 
+            // update the highscore
+            taskStatsDict = Main.instance.GetDataDict("taskStatsDict");
             if (endScore > taskStatsDict["highscore"])
             {
                 taskStatsDict["highscore"] = endScore;
-                // Add new highscore indicator
             }
             HighScore.text = "Highscore: " + taskStatsDict["highscore"].ToString();
         }
     }
 
-
-
-
-
+    // final update of the values in value handler and load the clicker scene
     public void EndButtonClicked()
     {
         Main.instance.UpdateResources(endScore);
@@ -297,16 +306,19 @@ public class AimGame : MonoBehaviour
         Main.instance.LoadScene("Clicker");
     }
 
+    // method to display the time during the task
     void DisplayTime(float timeToDisplay)
     {
         float minutes = Mathf.FloorToInt(timeToDisplay / 60);
         float seconds = Mathf.FloorToInt(timeToDisplay % 60);
         timeText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
     }
+
+    // method to diplay the countdown time prior to the task starting
     void DisplayCountdown(float timeToDisplay)
     {
         float seconds = Mathf.FloorToInt(timeToDisplay % 60);
-        Countdown.text = string.Format("{0}", seconds);
+        CountdownGO.text = string.Format("{0}", seconds);
     }
 
 }
