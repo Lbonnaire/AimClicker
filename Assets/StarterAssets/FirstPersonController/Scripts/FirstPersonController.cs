@@ -2,6 +2,7 @@
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM && STARTER_ASSETS_PACKAGES_CHECKED
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 #endif
 
 namespace StarterAssets
@@ -55,6 +56,7 @@ namespace StarterAssets
 		// cinemachine
 		private float _cinemachineTargetPitch;
 		AimGame AimTask;
+		ClickerGame Clicker;
 		// player
 		private float _speed;
 		private float _rotationVelocity;
@@ -103,6 +105,8 @@ namespace StarterAssets
 			originalRotation = transform.localRotation;
 			mouseXStartPos = Mouse.current.position.x.value;
 			AimTask = GameObject.Find("Game").gameObject.transform.GetComponent<AimGame>();
+			Clicker = GameObject.Find("UI").gameObject.transform.GetComponent<ClickerGame>();
+
 			clicked = false;
 			taskStarted = false;
 			_controller = GetComponent<CharacterController>();
@@ -247,33 +251,42 @@ namespace StarterAssets
 			// move the player
 			_controller.Move(inputDirection.normalized * (_speed * Time.deltaTime) + new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
 		}
+
+		// detect mouse clicks on both the clicker scene and the aim scene
 		void OnMouseClick()
 		{
-			if (!taskStarted)
-			{
-				AimTask.StartTask();
-				taskStarted = true;
-			}
-			else
-			{
-				//Debug.Log("clicked");
-				int layerMask = 1 << 7;
-				//layerMask =~layerMask;
-				GameObject AimOrigin = CinemachineCameraTarget;
-				RaycastHit hit;
-
-				if (Physics.Raycast(AimOrigin.transform.position, AimOrigin.transform.TransformDirection(Vector3.forward), out hit, Mathf.Infinity, layerMask))
+			RaycastHit hit;
+			int layerMask = 1 << 7;
+			GameObject AimOrigin = CinemachineCameraTarget;
+			
+			// if(SceneManager.GetActiveScene().name == "Clicker"){
+			// 	if (Physics.Raycast(AimOrigin.transform.position, AimOrigin.transform.TransformDirection(Vector3.forward), out hit, Mathf.Infinity, layerMask)){
+			// 			Debug.Log("In Raycast");
+			// 			Clicker.PanelClicked(hit);
+			// 	}
+			// }else{			
+				if (!taskStarted)
 				{
-
-					Debug.DrawRay(AimOrigin.transform.position, AimOrigin.transform.TransformDirection(Vector3.forward) * hit.distance, Color.yellow);
-					AimTask.OnHit(hit);
+					AimTask.StartTask();
+					taskStarted = true;
 				}
 				else
 				{
-					Debug.DrawRay(AimOrigin.transform.position, AimOrigin.transform.TransformDirection(Vector3.forward) * 1000, Color.white);
-					//Debug.Log("Did not Hit");
-					AimTask.OnMiss(hit);
-				}
+					//Debug.Log("clicked");
+
+					if (Physics.Raycast(AimOrigin.transform.position, AimOrigin.transform.TransformDirection(Vector3.forward), out hit, Mathf.Infinity, layerMask))
+					{
+
+						Debug.DrawRay(AimOrigin.transform.position, AimOrigin.transform.TransformDirection(Vector3.forward) * hit.distance, Color.yellow);
+						AimTask.OnHit(hit);
+					}
+					else
+					{
+						Debug.DrawRay(AimOrigin.transform.position, AimOrigin.transform.TransformDirection(Vector3.forward) * 1000, Color.white);
+						//Debug.Log("Did not Hit");
+						AimTask.OnMiss(hit);
+					}
+				// }
 			}
 		}
 
@@ -348,12 +361,6 @@ namespace StarterAssets
 			// when selected, draw a gizmo in the position of, and matching radius of, the grounded collider
 			Gizmos.DrawSphere(new Vector3(transform.position.x, transform.position.y - GroundedOffset, transform.position.z), GroundedRadius);
 		}
-
-
-
-
-
-
 
 
 		private float mouseXPos;

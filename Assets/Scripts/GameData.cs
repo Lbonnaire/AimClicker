@@ -95,6 +95,11 @@ public class GameData
                 valueToReturn = this.highscore;
                 break;
 
+            case "resDiscovered":
+                valueToReturn = this.resDiscovered;
+                break;
+
+
         }
         return valueToReturn;
     }

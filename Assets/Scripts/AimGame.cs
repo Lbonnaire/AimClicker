@@ -22,6 +22,7 @@ public class AimGame : MonoBehaviour
                         UI,
                         Panel,
                         Player,
+                        
                         TaskCompleted;
 
     // movement controls
@@ -55,10 +56,12 @@ public class AimGame : MonoBehaviour
                     FinalScore,
                     HighScore,
                     timeText,
+                    
                     CountdownGO;
 
     // UI elements
-    public Button EndStatsClose;
+    public Button   QuitButton,
+                    EndStatsClose;
 
     // timers init
     public float timeRemaining = 10;
@@ -144,6 +147,8 @@ public class AimGame : MonoBehaviour
         Player = GameObject.Find("PlayerCameraRoot");
         EndStatsClose = TaskCompleted.transform.Find("EndStats").GetComponentInChildren<Button>();
         EndStatsClose.onClick.AddListener(EndButtonClicked);
+        QuitButton = UI.transform.Find("Canvas").gameObject.transform.Find("QuitButton").gameObject.GetComponent<Button>();
+        QuitButton.onClick.AddListener(Quit);
 
         CountdownGO = UI.transform.Find("Canvas").gameObject.transform.Find("Countdown").gameObject.GetComponent<TMP_Text>();
         AccText = GameObject.Find("Accuracy").GetComponent<TMP_Text>();
@@ -319,6 +324,11 @@ public class AimGame : MonoBehaviour
     {
         float seconds = Mathf.FloorToInt(timeToDisplay % 60);
         CountdownGO.text = string.Format("{0}", seconds);
+    }
+
+    public void Quit(){
+        Main.instance.SaveData();
+        Application.Quit();
     }
 
 }

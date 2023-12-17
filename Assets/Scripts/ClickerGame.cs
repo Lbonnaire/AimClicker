@@ -5,6 +5,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
 using UnityEngine.EventSystems;
+using System.Reflection;
+using System.Linq.Expressions;
+using Unity.VisualScripting;
 
 
 
@@ -24,11 +27,19 @@ public class ClickerGame : MonoBehaviour
                     TaskChoice,
                     ResPrefab,
                     GatherPrefab,
+                    UpgradePrefab,
+                    IntroScreen,
                     UpgAndGather;
 
+
     // Buttons 
-    public Button TaskBut1;
-    public Button TaskBut2;
+    public Button   IntroBut,
+                    UpgradeBut,
+                    GatherBut,
+                    QuitButton,
+                    TaskBut1,
+                    TaskBut2;
+    
 
     // reference to know which UI element was last pressed
     public string lastClicked;
@@ -37,9 +48,15 @@ public class ClickerGame : MonoBehaviour
     public Dictionary<string, float> resDict;
     public Dictionary<string, float> mainDict;
 
+    GameObject[] GoUpgArray;
+
     // array of resources
     private string[] resArray = new string[8] { "food", "wood", "stone", "minerals", "bronze", "copper", "iron", "gold" };
 
+     // NOT IMPLEMENTED YET - upgrades to be discovered
+    public List<string> UpgradeList = new List<string>();
+    int resDiscovered=1;
+   
     // colors to be assigned to each resource
     // food     - white
     // wood     - dark brown
@@ -51,21 +68,30 @@ public class ClickerGame : MonoBehaviour
     // gold     - gold
     private UnityEngine.Color[] colourArray = new UnityEngine.Color[8] { UnityEngine.Color.white, new UnityEngine.Color(150, 75, 0), UnityEngine.Color.gray, new UnityEngine.Color(127, 255, 212), new UnityEngine.Color(244, 164, 96), new UnityEngine.Color(255, 165, 0), new UnityEngine.Color(169, 169, 169), new UnityEngine.Color(255, 215, 0) };
 
+    // colors for selected/deselected tabs
+    private UnityEngine.Color selectedCol=  UnityEngine.Color.white;
+    private UnityEngine.Color deselectedCol=  UnityEngine.Color.gray;
+    
 
-    // NOT IMPLEMENTED YET - upgrades to be discovered
-    private string[] upgArray = new string[2] { "DiscWood", "DiscStone" };
+    bool introScreenClicked=false; // detect if introScreen was read and continued
+
+   
+    
 
 
-
-
-    // Update is called once per frame
+    /// <summary>
+    /// Method <c> FixedUpdate </c> is called once per frame
+    /// </summary>
     void FixedUpdate()
     {
         // check that the main instance is already initialized
         CheckMainInit();
     }
 
-    // method to check if the singleton main instance is already initialized
+
+    /// <summary>
+    /// Method <c> CheckMainInit </c> checks if the singleton main instance is already initialized
+    /// </summary>
     void CheckMainInit()
     {
         // if the main instance has been initialized, initialize base values and call from the data handler
@@ -107,7 +133,9 @@ public class ClickerGame : MonoBehaviour
         }
     }
 
-    // Initialize unity gameobjects and link them to the script
+    /// <summary>
+    /// Method <c> InitializeGameObjects </c> initializes unity gameobjects and links them to the script
+    /// </summary>
     private void InitializeGameObjects()
     {
         //~~~~~~~~ Variable initialization ~~~~~~~~~
@@ -117,18 +145,51 @@ public class ClickerGame : MonoBehaviour
         Upgrades = UI.transform.Find("UpgsAndGather").gameObject.transform.Find("Upgrades").gameObject;
         GatherRes = UI.transform.Find("UpgsAndGather").gameObject.transform.Find("GatherRes").gameObject;
         Resources = UI.transform.Find("Resources").gameObject;
+        IntroScreen = UI.transform.Find("IntroScreen").gameObject;
         ResBg = Resources.gameObject.transform.Find("ResBg").gameObject;
         UpgAndGather = UI.transform.Find("UpgsAndGather").gameObject;
         TaskChoice = UI.transform.Find("TaskChoice").gameObject;
+        IntroBut = IntroScreen.transform.Find("NextButton").gameObject.GetComponent<Button>();
+        GatherBut = UpgAndGather.transform.Find("GatherBut").gameObject.GetComponent<Button>();
+        UpgradeBut = UpgAndGather.transform.Find("UpgradeBut").gameObject.GetComponent<Button>();
         TaskBut1 = TaskChoice.transform.Find("StartTask").gameObject.GetComponent<Button>();
         TaskBut2 = TaskChoice.transform.Find("Return").gameObject.GetComponent<Button>();
+        QuitButton = UI.transform.Find("QuitButton").gameObject.GetComponent<Button>();
 
-        // add listeners to the two button gameobjects
+        // hide the panel allowing the player to start the task
+        TaskChoice.SetActive(false);
+        Upgrades.SetActive(false);
+        if (Main.instance.introScreenShown){
+            IntroScreen.SetActive(false);
+        }
+
+
+        // set base color of tab buttons
+        GatherBut.GetComponent<Image>().color = selectedCol;
+        UpgradeBut.GetComponent<Image>().color = deselectedCol;
+
+        // add listeners to the button gameobjects
         TaskBut1.onClick.AddListener(TaskClicked);
         TaskBut2.onClick.AddListener(ReturnClicked);
+        IntroBut.onClick.AddListener(IntroClicked);
+        GatherBut.onClick.AddListener(GatherTabClicked);
+        UpgradeBut.onClick.AddListener(UpgradeTabClicked);
+        QuitButton.onClick.AddListener(Quit);
+
+        UIGeneration();
+        
+        
+    }
+
+
+    /// <summary>
+    /// Method <c> UIGeneration </c> handles the instantiation and positioning of dynamic buttons and text
+    /// </summary>
+    public void UIGeneration(){
         /// gameobject array
         GameObject[] GoGatherArray = new GameObject[8];
         GameObject[] GoResArray = new GameObject[8];
+        GoUpgArray = new GameObject[8];
 
         //Configure anchorpoints for Gather objects and Upgrade objects
         GameObject bgPanelGO = UI.transform.Find("UpgsAndGather").gameObject;
@@ -136,27 +197,27 @@ public class ClickerGame : MonoBehaviour
 
         // determine values for automated creation of buttons depending on resources discovered
         // dimensions of back panel
-        float Gatherheight = bgPanelGO.GetComponent<RectTransform>().rect.height;
-        float Gatherwidth = bgPanelGO.GetComponent<RectTransform>().rect.width;
+        float midPanelHeight = bgPanelGO.GetComponent<RectTransform>().rect.height;
+        float midPanelWidth = bgPanelGO.GetComponent<RectTransform>().rect.width;
         //starting points at the top left of the back panel
-        float GatherxStartPoint = -Gatherwidth / 2;
-        float GatheryStartPoint = Gatherheight / 2;
+        float midPanelxStartPoint = -midPanelWidth / 2;
+        float midPanelyStartPoint = midPanelHeight / 2;
 
         // determine X coordinate anchor points for the buttons and put them in an array
-        float gatherAnchorPointX1 = GatherxStartPoint + Gatherwidth * (0.25f);
-        float gatherAnchorPointX2 = GatherxStartPoint + Gatherwidth * (0.75f);
-        float[] gatherAnchorXArray = new float[2] { gatherAnchorPointX1, gatherAnchorPointX2 };
+        float midPanelAnchorPointX1 = midPanelxStartPoint + midPanelWidth * (0.25f);
+        float midPanelAnchorPointX2 = midPanelxStartPoint + midPanelWidth * (0.75f);
+        float[] midPanelAnchorXArray = new float[2] { midPanelAnchorPointX1, midPanelAnchorPointX2 };
 
         // determine Y coordinate anchor points for the buttons and put them in an array
-        float gatherAnchorPointY1 = GatheryStartPoint - Gatherheight * (0.11f);
-        float gatherAnchorPointY2 = GatheryStartPoint - Gatherheight * (0.22f);
-        float gatherAnchorPointY3 = GatheryStartPoint - Gatherheight * (0.33f);
-        float gatherAnchorPointY4 = GatheryStartPoint - Gatherheight * (0.44f);
-        float gatherAnchorPointY5 = GatheryStartPoint - Gatherheight * (0.55f);
-        float gatherAnchorPointY6 = GatheryStartPoint - Gatherheight * (0.66f);
-        float gatherAnchorPointY7 = GatheryStartPoint - Gatherheight * (0.77f);
-        float gatherAnchorPointY8 = GatheryStartPoint - Gatherheight * (0.88f);
-        float[] gatherAnchorYArray = new float[8] { gatherAnchorPointY1, gatherAnchorPointY2, gatherAnchorPointY3, gatherAnchorPointY4, gatherAnchorPointY5, gatherAnchorPointY6, gatherAnchorPointY7, gatherAnchorPointY8 };
+        float midPanelAnchorPointY1 = midPanelyStartPoint - midPanelHeight * (0.11f);
+        float midPanelAnchorPointY2 = midPanelyStartPoint - midPanelHeight * (0.22f);
+        float midPanelAnchorPointY3 = midPanelyStartPoint - midPanelHeight * (0.33f);
+        float midPanelAnchorPointY4 = midPanelyStartPoint - midPanelHeight * (0.44f);
+        float midPanelAnchorPointY5 = midPanelyStartPoint - midPanelHeight * (0.55f);
+        float midPanelAnchorPointY6 = midPanelyStartPoint - midPanelHeight * (0.66f);
+        float midPanelAnchorPointY7 = midPanelyStartPoint - midPanelHeight * (0.77f);
+        float midPanelAnchorPointY8 = midPanelyStartPoint - midPanelHeight * (0.88f);
+        float[] midPanelAnchorYArray = new float[8] { midPanelAnchorPointY1, midPanelAnchorPointY2, midPanelAnchorPointY3, midPanelAnchorPointY4, midPanelAnchorPointY5, midPanelAnchorPointY6, midPanelAnchorPointY7, midPanelAnchorPointY8 };
 
         // determine values for automated creation text elements depending on resources discovered
         // dimensions of back panel for resources
@@ -182,6 +243,8 @@ public class ClickerGame : MonoBehaviour
         float resAnchorPointY9 = resyStartPoint - resheight * (0.9f);
         float[] resAnchorYArray = new float[9] { resAnchorPointY1, resAnchorPointY2, resAnchorPointY3, resAnchorPointY4, resAnchorPointY5, resAnchorPointY6, resAnchorPointY7, resAnchorPointY8, resAnchorPointY9 };
 
+        resDiscovered = (int)Main.instance.resDiscovered;
+
         // instantiate buttons and text UI objects based on how many resources have been discovered
         for (int i = 0; i < resArray.Length; i++)
         {
@@ -192,12 +255,34 @@ public class ClickerGame : MonoBehaviour
             GoGatherArray[i].name = "Gather " + resArray[i].Substring(0, 1).ToUpper() + resArray[i].Substring(1, resArray[i].Length - 1);
 
             // add a listener to the buttonm, change the text of the button and give it a tag
-            GoGatherArray[i].GetComponent<Button>().onClick.AddListener(UpgButtonClicked);
+            GoGatherArray[i].GetComponent<Button>().onClick.AddListener(TaskButtonClicked);
             GoGatherArray[i].GetComponentInChildren<TMP_Text>().text = "Gather " + resArray[i].Substring(0, 1).ToUpper() + resArray[i].Substring(1, resArray[i].Length - 1);
             GoGatherArray[i].transform.tag = resArray[i].Substring(0, 1).ToUpper() + resArray[i].Substring(1, resArray[i].Length - 1);
 
             // set the pivot of the button and set its poisition using determined anchor points
-            GoGatherArray[i].transform.localPosition = new Vector2(gatherAnchorXArray[i % 2], gatherAnchorYArray[Mathf.CeilToInt(((float)i + 1) / 2) - 1]);
+            GoGatherArray[i].transform.localPosition = new Vector2(midPanelAnchorXArray[i % 2], midPanelAnchorYArray[Mathf.CeilToInt(((float)i + 1) / 2) - 1]);
+
+            if (i<=UpgradeList.Count-1){
+                try{
+                    Debug.Log(Upgrades.transform.Find(UpgradeList[i]).gameObject);
+                }catch{
+                    
+                Instantiate(UpgradePrefab, Upgrades.transform);
+                GoUpgArray[i] = Upgrades.transform.Find("UpgradePrefab(Clone)").gameObject;
+                GoUpgArray[i].transform.SetParent(Upgrades.transform);
+                GoUpgArray[i].name = UpgradeList[i];
+
+                // add a listener to the buttonm, change the text of the button and give it a tag
+                GoUpgArray[i].GetComponent<Button>().onClick.AddListener(UpgradeClicked);
+                GoUpgArray[i].GetComponentInChildren<TMP_Text>().text =UpgradeList[i];
+                //GoUpgArray[i].transform.tag = GoUpgArray[i].name.Replace(" ",""); // Set tag name and remove spaces
+
+
+                // set the pivot of the button and set its poisition using determined anchor points
+                GoUpgArray[i].transform.localPosition = new Vector2(midPanelAnchorXArray[i % 2], midPanelAnchorYArray[Mathf.CeilToInt(((float)i + 1) / 2) - 1]);
+                }
+
+            }
 
             // create an instance of the resource text, set its position in the unity hierarchy and change its name
             Instantiate(ResPrefab, ResBg.transform);
@@ -214,12 +299,11 @@ public class ClickerGame : MonoBehaviour
             GoResArray[i].transform.GetComponent<RectTransform>().pivot = new Vector2(0, 1);
             GoResArray[i].transform.localPosition = new Vector2(resAnchorPointX, resAnchorYArray[i]);
         }
+
+         lastClicked = ""; // give variable initial value;
         
-    
-        lastClicked = ""; // give variable initial value;
         
-        
-        float resDiscovered = Main.instance.resDiscovered;
+        resDiscovered = (int)Main.instance.resDiscovered;
 
         // hide the undiscovered buttons and resource texts
         for (int i = resArray.Length - 1; i > resDiscovered - 1; i--)
@@ -230,30 +314,31 @@ public class ClickerGame : MonoBehaviour
         {
             GoGatherArray[i].gameObject.SetActive(false);
         }
-
-        // hide the panel allowing the player to start the task
-        TaskChoice.SetActive(false);
     }
 
-    // check which resources have been discovered based on how many resources have been farmed
-    // TODO: this should be changed to resources that have been upgraded by the player (consuming resources)
+    /// <summary>
+    /// Method <c> CheckResDict </c> checks which resources have been discovered based on how many resources have been farmed
+    /// </summary>
+    /// TODO: this should be changed to resources that have been upgraded by the player (consuming resources)
     private void CheckResDisc()
     {
         bool resDiscChanged = false;
         // resources are discovered sequentially
         if (Main.instance.resDiscovered == 1)
         {
-            if (Main.instance.GetValue("resDict", "food") > 100)
+            if (Main.instance.GetValue("resDict", "food") > 20)
             {
-                Main.instance.resDiscovered = 2;
+                UpgradeList.Add("Discover Wood");
+                //Main.instance.resDiscovered = 2;
                 resDiscChanged = true;
             }
         }
         else if (Main.instance.resDiscovered == 2)
         {
-            if (Main.instance.GetValue("resDict", "wood") > 30)
+            if (Main.instance.GetValue("resDict", "wood") > 40)
             {
-                Main.instance.resDiscovered = 3;
+                UpgradeList.Add("Discover Stone");
+                //Main.instance.resDiscovered = 3;
                 resDiscChanged = true;
             }
         }
@@ -261,7 +346,8 @@ public class ClickerGame : MonoBehaviour
         {
             if (Main.instance.GetValue("resDict", "stone") > 50)
             {
-                Main.instance.resDiscovered = 4;
+                UpgradeList.Add("Discover Minerals");
+                //Main.instance.resDiscovered = 4;
                 resDiscChanged = true;
             }
         }
@@ -274,13 +360,84 @@ public class ClickerGame : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method <c> TaskClicked </c> is executed when the start task button is clicked
+    /// </summary>
     public void TaskClicked()
     {
         // send to Task
+        try{
+            mainDict.Add("resDiscovered", Main.instance.resDiscovered);
+        }catch{
+            mainDict["resDiscovered"]=Main.instance.resDiscovered;
+        }
+        
         Main.instance.StoreMainDict(resDict, "resDict");
+        Main.instance.StoreMainDict(mainDict, "mainDict");
         Main.instance.SaveData();
         Main.instance.LoadScene("AimScene");
     }
+
+    /// <summary>
+    /// Method <c> IntroClicked </c> is executed when the introduction sceen button is clicked
+    /// </summary>
+    public void IntroClicked(){
+        IntroScreen.SetActive(false);
+        Main.instance.introScreenShown = true;
+    }
+
+    /// <summary>
+    /// Method <c> GatherClicked </c> is executed when the gather button is clicked
+    /// </summary>
+    public void GatherTabClicked(){
+        GatherBut.GetComponent<Image>().color = selectedCol;
+        UpgradeBut.GetComponent<Image>().color = deselectedCol;
+        GatherRes.SetActive(true);
+        Upgrades.SetActive(false);
+    }
+
+    /// <summary>
+    /// Method <c> UpgradeClicked </c> is executed when the upgrade button is clicked
+    /// </summary>
+    public void UpgradeTabClicked(){
+        GatherBut.GetComponent<Image>().color = deselectedCol;
+        UpgradeBut.GetComponent<Image>().color = selectedCol;
+        GatherRes.SetActive(false);
+        Upgrades.SetActive(true);
+        
+        if (UpgradeList.Count>=1){
+            Upgrades.transform.Find("NoUpg").gameObject.SetActive(false);
+            UIGeneration(); // refresh upgrades
+        }else{
+            Upgrades.transform.Find("NoUpg").gameObject.SetActive(true);
+        }
+    }
+
+    /// <summary>
+    /// Method <c> UpgradeClicked </c> is executed when an upgrade has been clicked
+    /// </summary>
+    public void UpgradeClicked(){
+        Debug.Log("upgrade clicked");
+        Main.instance.resDiscovered ++;
+        UpgradeList.Remove(EventSystem.current.currentSelectedGameObject.name);
+        EventSystem.current.currentSelectedGameObject.SetActive(false);
+
+        try{
+            mainDict.Add("resDiscovered", Main.instance.resDiscovered);
+        }catch{
+            mainDict["resDiscovered"]=Main.instance.resDiscovered;
+        }
+        Main.instance.StoreMainDict(resDict, "resDict");
+        Main.instance.StoreMainDict(mainDict, "mainDict");
+        Main.instance.SaveData();
+
+        UIGeneration(); // refresh resources
+      
+    }
+
+    /// <summary>
+    /// Method <c> ReturnClicked </c> is executed when the upgrade tab is clicked
+    /// </summary>
     public void ReturnClicked()
     {
         // return to main screen     
@@ -290,16 +447,34 @@ public class ClickerGame : MonoBehaviour
 
     }
 
-    // WIP: show the upgrades panel
-    public void UpgButtonClicked()
+    /// <summary>
+    /// Method <c> TaskButtonClicked </c> is executed when the task button is clicked
+    /// </summary>
+    public void TaskButtonClicked()
     {
         Main.instance.currentResource = EventSystem.current.currentSelectedGameObject.tag.ToLower();
         Debug.Log(Main.instance.currentResource);
-        Resources.SetActive(false);
-        UpgAndGather.SetActive(false);
+        // Resources.SetActive(false);
+        // UpgAndGather.SetActive(false);
         TaskChoice.SetActive(true);
         TaskChoice.transform.Find("UpgName").GetComponent<TMP_Text>().text = lastClicked;
     }
+
+    public void Quit(){
+        try{
+            mainDict.Add("resDiscovered", Main.instance.resDiscovered);
+        }catch{
+            mainDict["resDiscovered"]=Main.instance.resDiscovered;
+        }
+        Main.instance.StoreMainDict(resDict, "resDict");
+        Main.instance.StoreMainDict(mainDict, "mainDict");
+        Main.instance.SaveData();
+        Application.Quit();
+    }
+
+
+
+
 }
 
 

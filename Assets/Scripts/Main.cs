@@ -20,7 +20,7 @@ public class Main : MonoBehaviour
     // arrays
     private string[] resArray = new string[8] { "food", "wood", "stone", "minerals", "bronze", "copper", "iron", "gold" };
     private string[] taskStatsArray = new string[1] { "highscore" };
-    private string[] mainArray = new string[1]{"resDiscorvered"};
+    private string[] mainArray = new string[1]{"resDiscovered"};
 
     // initialize the amount of resources discovered
     public float resDiscovered=1;
@@ -30,6 +30,7 @@ public class Main : MonoBehaviour
 
     GameData data;
     public bool mainInitialized= false;
+    public bool introScreenShown=false;
 
     //// LOG
     // sens  
@@ -60,7 +61,7 @@ public class Main : MonoBehaviour
         InitializeDicts(); // give base values to the dictionaries
         LoadData(); // load data from the saved file
 
-        // checks if it's the first time the program is launched and saves initial values if so
+        // checks if it's the first time the program is launched and saves initial values if so debug loaded data to see if previous data was saved
         try
         {
             Debug.Log(this.data.food);
@@ -72,7 +73,7 @@ public class Main : MonoBehaviour
             StoreMainDict(this.mainDict,"mainDict");
             SaveData();
         }
-        
+        Debug.Log(resDiscovered +" resources discovered");
         SetResDisc(); // sets the amount of resources that have been discovered
         mainInitialized = true;
     }
@@ -97,9 +98,14 @@ public class Main : MonoBehaviour
 
         // add the task data to instance dictionary
         for (int i = 0; i < taskStatsArray.Length; i++)
-        {
-            this.taskStatsDict.Add(taskStatsArray[i], this.data.GetValue(taskStatsArray[i]));
+        {   try { // try filling in the dictionary
+            this.taskStatsDict.Add(taskStatsArray[i], this.data.GetValue(taskStatsArray[i])); 
+            }catch{ // edit the values of the dictionary if it has already been initialized
+              this.taskStatsDict[taskStatsArray[i]]= this.data.GetValue(taskStatsArray[i]);  
+            }
+
         }
+        resDiscovered = this.data.GetValue("resDiscovered");
     }
 
     // for each resource with a non-zero value, increase the amount of resources discovered
@@ -168,7 +174,6 @@ public class Main : MonoBehaviour
                 // set the resource gamedata values to the ones provided in the method
                 for (int i = 0; i < resArray.Length; i++)
                 {
-
                     this.data.SetValue(resArray[i], newDict[resArray[i]]);
                 }
                 break;
@@ -200,7 +205,11 @@ public class Main : MonoBehaviour
         this.taskStatsDict = new Dictionary<string, float>();
         for (int i = 0; i < this.taskStatsArray.Length; i++)
         {
-            this.taskStatsDict.Add(this.taskStatsArray[i], 0f);
+            try { // try filling in the dictionary
+                this.taskStatsDict.Add(this.taskStatsArray[i], 0); 
+            }catch{ // edit the values of the dictionary if it has already been initialized
+              this.taskStatsDict[this.taskStatsArray[i]]= 0;  
+            }
         }
 
         // set initial resources discovered to 1

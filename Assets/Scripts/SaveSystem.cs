@@ -3,19 +3,20 @@ using UnityEngine;
 using System.IO;
 
 using System.Runtime.Serialization.Formatters.Binary;
+using System;
 
 
 public static class SaveSystem
 {
+    // variable declaration for location fo saved file
     public static string directory = "/saveData/";
     public static string filename = "myData.txt";
-
+    
+    // Save the gamedata to the path in JSON
     public static void SaveData(GameData data)
     {
-        //Debug.Log("dataIsBeingSaved");
-        //BinaryFormatter formatter = new BinaryFormatter();
         string path = Application.persistentDataPath + directory;
-        //Debug.Log(Application.persistentDataPath);
+        //if the path doesn't exist create a new file
         if (!Directory.Exists(path))
             Directory.CreateDirectory(path);
 
@@ -24,6 +25,8 @@ public static class SaveSystem
 
     }
 
+
+    //Load the data from the save file and return it as gamedata 
     public static GameData LoadData()
     {
 
